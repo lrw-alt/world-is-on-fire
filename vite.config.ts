@@ -144,7 +144,6 @@ function authPopupPlugin(): Plugin {
 
 function securityDenyPlugin(): Plugin {
   const deniedPatterns = [
-    /^\/firebase-applet-config\.json(\?.*)?$/i,
     /^\/firebase-blueprint\.json(\?.*)?$/i,
     /^\/firestore\.rules(\?.*)?$/i,
     /^\/security_spec\.md(\?.*)?$/i,
@@ -187,7 +186,6 @@ export default defineConfig(({ command, isPreview }) => ({
         ".env",
         ".env.*",
         "*.{crt,pem}",
-        "firebase-applet-config.json",
         "firebase-blueprint.json",
         "firestore.rules",
         "security_spec.md",

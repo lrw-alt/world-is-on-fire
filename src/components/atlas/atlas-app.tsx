@@ -275,6 +275,7 @@ export function AtlasApp() {
         onZoomIn={() => setFlyTo({ ...view, zoom: Math.min(13, view.zoom + 1) })}
         onZoomOut={() => setFlyTo({ ...view, zoom: Math.max(2, view.zoom - 1) })}
         onLocate={onLocate}
+        onFlyToRegion={(region) => setFlyTo(region)}
         onSelectSaved={onSelectSaved}
       />
 

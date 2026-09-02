@@ -116,11 +116,16 @@ function IncidentLayer({
 
     for (const cluster of clusters) {
       if (cluster.count > 1 && cell > 0) {
-        const size = Math.min(42, 22 + Math.log2(cluster.count) * 6);
+        const size = Math.min(46, 24 + Math.log2(cluster.count) * 6);
         const icon = L.divIcon({
           className: "",
           iconSize: [size, size],
-          html: `<div style="width:${size}px;height:${size}px;border-radius:999px;background:color-mix(in oklab, ${c.ember} 82%, black);border:1px solid color-mix(in oklab, ${c.hot} 70%, white 10%);color:${c.fg};display:flex;align-items:center;justify-content:center;font:600 11px Outfit,sans-serif;box-shadow:0 0 0 4px color-mix(in oklab, ${c.ember} 22%, transparent)">${cluster.count}</div>`,
+          html: `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;">
+            <div style="position:absolute;inset:0;border-radius:999px;background:color-mix(in oklab, ${c.ember} 88%, #000);border:1.5px solid color-mix(in oklab, ${c.hot} 80%, #fff 20%);box-shadow:0 0 14px color-mix(in oklab, ${c.ember} 60%, transparent);display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:Outfit,sans-serif;font-weight:700;font-size:${size > 36 ? '12px' : '11px'};color:${c.fg};letter-spacing:-0.02em;">${cluster.count}</span>
+            </div>
+            <div style="position:absolute;inset:-4px;border-radius:999px;border:1px dashed color-mix(in oklab, ${c.hot} 40%, transparent);pointer-events:none;"></div>
+          </div>`,
         });
         const m = L.marker([cluster.lat, cluster.lng], { icon, zIndexOffset: 400 });
         m.on("click", (ev) => {
@@ -135,17 +140,23 @@ function IncidentLayer({
       if (selected) continue;
       const marker = L.circleMarker([incident.lat, incident.lng], {
         renderer,
-        radius: incident.acres && incident.acres > 5000 ? 7 : 5,
-        color: c.fg,
+        radius: incident.acres && incident.acres > 5000 ? 7.5 : 5.5,
+        color: "#ffffff",
         fillColor: c.ember,
         fillOpacity: 0.95,
-        weight: 1.2,
+        weight: 1.5,
       });
-      marker.bindTooltip(`${incident.title} · ${formatAcres(incident.acres)}`, {
-        className: "ember-tip",
-        direction: "top",
-        opacity: 1,
-      });
+      marker.bindTooltip(
+        `<div style="display:flex;flex-direction:column;gap:2px;">
+          <div style="font-weight:600;color:${c.fg};">${incident.title}</div>
+          <div style="font-size:11px;color:${c.muted};">${formatAcres(incident.acres)} · ${incident.closed ? 'Contained' : 'Active'}</div>
+        </div>`,
+        {
+          className: "ember-tip",
+          direction: "top",
+          opacity: 1,
+        },
+      );
       marker.on("click", (ev) => {
         L.DomEvent.stopPropagation(ev);
         onSelect(incident);
@@ -157,15 +168,23 @@ function IncidentLayer({
     if (selected) {
       const icon = L.divIcon({
         className: "",
-        iconSize: [18, 18],
-        iconAnchor: [9, 9],
-        html: `<div style="position:relative;width:18px;height:18px">
-          <span style="position:absolute;inset:-10px;border-radius:999px;border:1px solid ${c.ember};opacity:.7"></span>
-          <span style="position:absolute;inset:3px;border-radius:999px;background:${c.hot};box-shadow:0 0 16px ${c.ember}"></span>
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        html: `<div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;inset:0;border-radius:999px;border:1.5px solid ${c.hot};box-shadow:0 0 16px ${c.ember};animation:ember-ring 2s ease-out infinite;"></div>
+          <div style="position:absolute;inset:3px;border-radius:999px;border:1px dashed color-mix(in oklab, ${c.hot} 80%, white);opacity:0.8;"></div>
+          <div style="width:10px;height:10px;border-radius:999px;background:${c.hot};box-shadow:0 0 12px ${c.ember};border:1.5px solid #fff;"></div>
+          <div style="position:absolute;top:-4px;left:13px;width:2px;height:5px;background:${c.hot};"></div>
+          <div style="position:absolute;bottom:-4px;left:13px;width:2px;height:5px;background:${c.hot};"></div>
+          <div style="position:absolute;left:-4px;top:13px;width:5px;height:2px;background:${c.hot};"></div>
+          <div style="position:absolute;right:-4px;top:13px;width:5px;height:2px;background:${c.hot};"></div>
         </div>`,
       });
       const m = L.marker([selected.lat, selected.lng], { icon, zIndexOffset: 900 });
-      m.bindTooltip(selected.title, { className: "ember-tip", direction: "top", opacity: 1, permanent: true });
+      m.bindTooltip(
+        `<div style="font-weight:600;color:${c.fg};font-size:12px;">🔥 ${selected.title}</div>`,
+        { className: "ember-tip", direction: "top", opacity: 1, permanent: true },
+      );
       m.on("click", () => onSelect(selected));
       m.addTo(group);
     }
