@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -69,6 +69,13 @@ export function Inspector({
   const [submittingReport, setSubmittingReport] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const [copiedCoords, setCopiedCoords] = useState(false);
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   const incidentId = incident?.id ?? (hotspot ? `viirs_${hotspot.lat.toFixed(2)}_${hotspot.lng.toFixed(2)}` : null);
 
@@ -131,7 +138,8 @@ export function Inspector({
     if (!coords) return;
     navigator.clipboard?.writeText(coords);
     setCopiedCoords(true);
-    setTimeout(() => setCopiedCoords(false), 2000);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedCoords(false), 2000);
   };
 
   const openSources = useMemo(() => incident?.sources ?? [], [incident]);

@@ -1,4 +1,4 @@
-export function formatAcres(n: number | null) {
+export function formatAcres(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "Size unknown";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M acres`;
   if (n >= 10_000) return `${Math.round(n / 1000)}k acres`;
@@ -6,9 +6,10 @@ export function formatAcres(n: number | null) {
   return `${Math.round(n)} acres`;
 }
 
-export function formatUtc(iso: string) {
+export function formatUtc(iso: string | null | undefined): string {
+  if (!iso) return "—";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return String(iso);
   return (
     d.toLocaleString("en-GB", {
       day: "2-digit",
@@ -22,9 +23,10 @@ export function formatUtc(iso: string) {
   );
 }
 
-export function formatDay(iso: string) {
+export function formatDay(iso: string | null | undefined): string {
+  if (!iso) return "—";
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00Z` : iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return String(iso);
   return d.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -33,18 +35,31 @@ export function formatDay(iso: string) {
   });
 }
 
-export function todayISO() {
+export function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function addDaysISO(iso: string, days: number) {
-  const d = new Date(`${iso}T00:00:00Z`);
+export function addDaysISO(iso: string, days: number): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
-export function relativeHours(hoursOld: number) {
-  if (hoursOld < 1) return "just now";
+export function dayIndex(minDay: string, currentDay: string): number {
+  const a = Date.parse(`${minDay.slice(0, 10)}T00:00:00Z`);
+  const b = Date.parse(`${currentDay.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.round((b - a) / 86400000);
+}
+
+export function indexToDay(minDay: string, index: number): string {
+  const d = new Date(`${minDay.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + index);
+  return d.toISOString().slice(0, 10);
+}
+
+export function relativeHours(hoursOld: number): string {
+  if (!Number.isFinite(hoursOld) || hoursOld < 1) return "just now";
   if (hoursOld < 24) return `${Math.max(1, Math.round(hoursOld))}h ago`;
   const days = hoursOld / 24;
   if (days < 2) return "yesterday";

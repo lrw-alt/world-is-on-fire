@@ -81,16 +81,16 @@ export function AtlasApp() {
     const allIncidents = incidentsQ.data?.incidents ?? [];
     const day = mode === "history" ? historyDay : maxDay;
     return allIncidents.filter((inc) => {
+      if (!includeSmall && inc.acres != null && inc.acres < 100) return false;
       if (mode === "history") return isIncidentActiveOn(inc, day);
       if (mode === "live") return !inc.closed;
-      if (!includeSmall && inc.acres != null && inc.acres < 100) return false;
       if (mode === "48h") {
         const age = Date.now() - Date.parse(inc.started);
         return !inc.closed || age < 48 * 3600000;
       }
       return true;
-    }).filter((inc) => includeSmall || inc.acres == null || inc.acres >= 100);
-  }, [incidentsQ.data, includeSmall, mode, historyDay, maxDay]);
+    });
+  }, [incidentsQ.data?.incidents, includeSmall, mode, historyDay, maxDay]);
 
   const visibleHotspots = useMemo(() => {
     const pts = hotspotsQ.data?.points ?? [];

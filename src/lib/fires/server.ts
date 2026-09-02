@@ -13,13 +13,46 @@ import type {
 } from "./types";
 
 const UA = "Mozilla/5.0 (compatible; EmberAtlas/1.0; fire intelligence)";
-const cache = new Map<string, { at: number; value: unknown }>();
+
+/**
+ * Bounded TTL Cache to prevent memory growth under heavy querying or varied coordinates.
+ */
+class BoundedTtlCache {
+  private store = new Map<string, { at: number; value: unknown }>();
+  constructor(private maxEntries = 300) {}
+
+  get<T>(key: string, ttlMs: number): T | undefined {
+    const hit = this.store.get(key);
+    if (!hit) return undefined;
+    if (Date.now() - hit.at > ttlMs) {
+      this.store.delete(key);
+      return undefined;
+    }
+    return hit.value as T;
+  }
+
+  set<T>(key: string, value: T): void {
+    if (this.store.size >= this.maxEntries) {
+      // Evict oldest 20% entries
+      const countToEvict = Math.max(1, Math.floor(this.maxEntries * 0.2));
+      let evicted = 0;
+      for (const k of this.store.keys()) {
+        this.store.delete(k);
+        evicted++;
+        if (evicted >= countToEvict) break;
+      }
+    }
+    this.store.set(key, { at: Date.now(), value });
+  }
+}
+
+const serverCache = new BoundedTtlCache(400);
 
 async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < ttlMs) return hit.value as T;
+  const hit = serverCache.get<T>(key, ttlMs);
+  if (hit !== undefined) return hit;
   const value = await fn();
-  cache.set(key, { at: Date.now(), value });
+  serverCache.set(key, value);
   return value;
 }
 
@@ -265,15 +298,25 @@ export const getHotspots = createServerFn({ method: "POST" })
     return { points, fetchedAt: new Date().toISOString(), windowHours: hours };
   });
 
-function decodeXml(value: string) {
+function decodeXml(value: string): string {
   return value
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
     .replace(/&#39;/g, "'")
-    .replace(/'/g, "'");
+    .replace(/&#x27;/g, "'")
+    .replace(/&#8216;/g, "‘")
+    .replace(/&#8217;/g, "’")
+    .replace(/&#8220;/g, "“")
+    .replace(/&#8221;/g, "”")
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .trim();
 }
 
 function tag(block: string, name: string): string | null {
@@ -289,7 +332,7 @@ function parseRss(xml: string, fallbackOutlet: string): NewsItem[] {
     const link = tag(chunk, "link") ?? chunk.match(/<link[^>]*href="([^"]+)"/i)?.[1] ?? "";
     if (!titleRaw || !link) continue;
     let outlet = fallbackOutlet;
-    let title = titleRaw.replace(/<\/?[^>]+>/g, "");
+    let title = titleRaw.replace(/<\/?[^>]+>/g, "").trim();
     const source = tag(chunk, "source");
     if (source) outlet = source;
     const dash = title.lastIndexOf(" - ");
@@ -305,7 +348,7 @@ function parseRss(xml: string, fallbackOutlet: string): NewsItem[] {
       url: link,
       outlet,
       published: published ? new Date(published).toISOString() : null,
-      summary: summary ? summary.replace(/<[^>]+>/g, "").slice(0, 240) : null,
+      summary: summary ? decodeXml(summary.replace(/<[^>]+>/g, "")).slice(0, 240) : null,
     });
   }
   return items;
@@ -494,9 +537,9 @@ export const crossCheckIncident = createServerFn({ method: "POST" })
       }
 
       const cacheKey = `check:${data.title}:${data.lat.toFixed(2)}:${data.lng.toFixed(2)}:${data.started.slice(0, 10)}`;
-      const hit = cache.get(cacheKey);
-      if (hit && Date.now() - hit.at < 30 * 60 * 1000) {
-        return { ok: true, check: hit.value as FactCheck };
+      const hit = serverCache.get<FactCheck>(cacheKey, 30 * 60 * 1000);
+      if (hit !== undefined) {
+        return { ok: true, check: hit };
       }
 
       const fromDate = data.started.slice(0, 10);
@@ -560,7 +603,7 @@ Return ONLY valid JSON (no markdown fences, no extra text) with this exact shape
             if (citations.length > 0 && check.news.length === 0) {
               check.news = citations.slice(0, 8);
             }
-            cache.set(cacheKey, { at: Date.now(), value: check });
+            serverCache.set(cacheKey, check);
             return { ok: true, check };
           }
         } catch (err: unknown) {
@@ -600,7 +643,7 @@ Return ONLY valid JSON (no markdown fences, no extra text) with this exact shape
         const text = extractXaiText(body);
         if (!text) return { ok: false, error: "Empty model response" };
         const check = parseFactCheck(text, extractXPosts(body));
-        cache.set(cacheKey, { at: Date.now(), value: check });
+        serverCache.set(cacheKey, check);
         return { ok: true, check };
       }
 

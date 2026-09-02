@@ -22,20 +22,35 @@ export type FireMapProps = {
   onViewChange: (view: MapView) => void;
 };
 
-function cssVar(name: string, fallback: string) {
-  if (typeof document === "undefined") return fallback;
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return v || fallback;
+let cachedPaints: ReturnType<typeof computePaints> | null = null;
+
+function computePaints() {
+  const getVar = (name: string, fallback: string) => {
+    if (typeof document === "undefined") return fallback;
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  };
+  return {
+    ember: getVar("--color-ember", "#e85d04"),
+    hot: getVar("--color-ember-hot", "#ff8a3d"),
+    dim: getVar("--color-ember-dim", "#a33f08"),
+    fg: getVar("--color-foreground", "#f4ebe3"),
+    bg: getVar("--color-card", "#1c1714"),
+    muted: getVar("--color-muted-foreground", "#9c9086"),
+  };
 }
 
 function paints() {
-  return {
-    ember: cssVar("--color-ember", "#e85d04"),
-    hot: cssVar("--color-ember-hot", "#ff8a3d"),
-    dim: cssVar("--color-ember-dim", "#a33f08"),
-    fg: cssVar("--color-foreground", "#f4ebe3"),
-    bg: cssVar("--color-card", "#1c1714"),
-    muted: cssVar("--color-muted-foreground", "#9c9086"),
+  if (!cachedPaints && typeof document !== "undefined") {
+    cachedPaints = computePaints();
+  }
+  return cachedPaints || {
+    ember: "#e85d04",
+    hot: "#ff8a3d",
+    dim: "#a33f08",
+    fg: "#f4ebe3",
+    bg: "#1c1714",
+    muted: "#9c9086",
   };
 }
 

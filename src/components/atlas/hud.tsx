@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Bookmark,
   Clock3,
@@ -23,9 +23,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFirebase } from "@/lib/firebase/context";
 import type { SavedIncident } from "@/lib/firebase/firestore-service";
-import { formatAcres, formatDay } from "@/lib/fires/format";
+import { dayIndex, formatAcres, formatDay, indexToDay } from "@/lib/fires/format";
 import { cn } from "@/lib/utils";
 import type { TimeMode } from "@/lib/fires/types";
+
+const LiveClock = memo(function LiveClock() {
+  const [utc, setUtc] = useState("");
+  useEffect(() => {
+    setUtc(new Date().toISOString().slice(11, 19));
+    const id = setInterval(() => setUtc(new Date().toISOString().slice(11, 19)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <span className="tabular-nums text-foreground/90 font-mono text-[10px]" suppressHydrationWarning>
+      {utc ? `${utc} UTC` : "— UTC"}
+    </span>
+  );
+});
 
 const modes: { id: TimeMode; label: string }[] = [
   { id: "live", label: "Live" },
@@ -42,7 +57,7 @@ export type RegionPreset = {
   zoom: number;
 };
 
-export const REGION_PRESETS: RegionPreset[] = [
+const REGION_PRESETS: RegionPreset[] = [
   { id: "global", name: "Global", lat: 20, lng: 8, zoom: 3 },
   { id: "na", name: "North America", lat: 39.5, lng: -115, zoom: 5 },
   { id: "sa", name: "Amazon Basin", lat: -9.5, lng: -56.5, zoom: 5 },
@@ -86,14 +101,7 @@ export function Hud(props: Props) {
   const [legendOpen, setLegendOpen] = useState(false);
   const [watchlistSearch, setWatchlistSearch] = useState("");
   const [activeRegion, setActiveRegion] = useState("global");
-  const [utc, setUtc] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setUtc(new Date().toISOString().slice(11, 19));
-    const id = setInterval(() => setUtc(new Date().toISOString().slice(11, 19)), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   // Keyboard shortcut '/' to focus search
   useEffect(() => {
@@ -107,10 +115,14 @@ export function Hud(props: Props) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const filteredSaved = savedIncidents.filter((inc) =>
-    inc.incidentTitle.toLowerCase().includes(watchlistSearch.toLowerCase()) ||
-    (inc.notes && inc.notes.toLowerCase().includes(watchlistSearch.toLowerCase()))
-  );
+  const filteredSaved = useMemo(() => {
+    const q = watchlistSearch.toLowerCase().trim();
+    if (!q) return savedIncidents;
+    return savedIncidents.filter((inc) =>
+      inc.incidentTitle.toLowerCase().includes(q) ||
+      (inc.notes && inc.notes.toLowerCase().includes(q))
+    );
+  }, [savedIncidents, watchlistSearch]);
 
   return (
     <>
@@ -134,9 +146,7 @@ export function Hud(props: Props) {
             <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               <span className="live-dot live-dot-core" />
               {props.mode === "live" ? "Live VIIRS/EONET" : "Historical"}
-              <span className="tabular-nums text-foreground/90 font-mono text-[10px]" suppressHydrationWarning>
-                {utc ? `${utc} UTC` : "— UTC"}
-              </span>
+              <LiveClock />
             </p>
           </div>
 
@@ -656,16 +666,4 @@ function Toggle({
       )}
     </button>
   );
-}
-
-function dayIndex(min: string, day: string) {
-  const a = Date.parse(`${min}T00:00:00Z`);
-  const b = Date.parse(`${day}T00:00:00Z`);
-  return Math.round((b - a) / 86400000);
-}
-
-function indexToDay(min: string, index: number) {
-  const d = new Date(`${min}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + index);
-  return d.toISOString().slice(0, 10);
 }

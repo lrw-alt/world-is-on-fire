@@ -60,6 +60,7 @@ export function subscribeUserSavedIncidents(
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, collectionPath, auth.currentUser);
+    return () => {};
   }
 }
 
@@ -119,6 +120,7 @@ export function subscribeIncidentReports(
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, collectionPath, auth.currentUser);
+    return () => {};
   }
 }
 
