@@ -142,6 +142,38 @@ function authPopupPlugin(): Plugin {
   };
 }
 
+function securityDenyPlugin(): Plugin {
+  const deniedPatterns = [
+    /^\/firebase-applet-config\.json(\?.*)?$/i,
+    /^\/firebase-blueprint\.json(\?.*)?$/i,
+    /^\/firestore\.rules(\?.*)?$/i,
+    /^\/security_spec\.md(\?.*)?$/i,
+    /^\/\.env(\..*)?$/i,
+    /^\/\.grok(\/.*)?$/i,
+    /^\/\.agents(\/.*)?$/i,
+    /^\/package\.json(\?.*)?$/i,
+    /^\/tsconfig\.json(\?.*)?$/i,
+    /^\/bun\.lock(\?.*)?$/i,
+    /^\/bunfig\.toml(\?.*)?$/i,
+  ];
+
+  return {
+    name: "app-builder:security-deny",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? "").split("?")[0];
+        if (deniedPatterns.some((pattern) => pattern.test(url))) {
+          res.statusCode = 403;
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({ error: "Forbidden: Direct access to configuration files is restricted." }));
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
@@ -150,6 +182,23 @@ export default defineConfig(({ command, isPreview }) => ({
     host: process.env.HOST || "localhost",
     port: 3000,
     strictPort: true,
+    fs: {
+      deny: [
+        ".env",
+        ".env.*",
+        "*.{crt,pem}",
+        "firebase-applet-config.json",
+        "firebase-blueprint.json",
+        "firestore.rules",
+        "security_spec.md",
+        "package.json",
+        "tsconfig.json",
+        ".grok/**",
+        ".agents/**",
+        "agents/**",
+        "migrations/**",
+      ],
+    },
     watch: {
       usePolling:
         process.env.CHOKIDAR_USEPOLLING === "true" ||
@@ -163,6 +212,7 @@ export default defineConfig(({ command, isPreview }) => ({
   },
   resolve: { tsconfigPaths: true },
   plugins: [
+    securityDenyPlugin(),
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),
