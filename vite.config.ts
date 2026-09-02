@@ -147,12 +147,17 @@ function authPopupPlugin(): Plugin {
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command, isPreview }) => ({
   server: {
-    host: "0.0.0.0",
+    host: process.env.HOST || "localhost",
     port: 3000,
     strictPort: true,
+    watch: {
+      usePolling:
+        process.env.CHOKIDAR_USEPOLLING === "true" ||
+        process.env.VITE_USE_POLLING === "true",
+    },
   },
   preview: {
-    host: "127.0.0.1",
+    host: process.env.HOST || "localhost",
     port: 8081,
     strictPort: true,
   },

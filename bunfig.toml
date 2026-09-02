@@ -1,0 +1,7 @@
+# Bun configuration for FireMap
+
+[install]
+lockfile = "bun.lock"
+
+[test]
+root = "."

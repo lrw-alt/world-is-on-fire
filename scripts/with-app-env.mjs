@@ -111,6 +111,12 @@ function main(argv) {
     process.exit(2);
   }
   const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
+  const rootBin = join(projectRoot(), "node_modules", ".bin");
+  const pathKey = Object.keys(env).find((k) => k.toUpperCase() === "PATH") || "PATH";
+  const currentPath = env[pathKey] || process.env[pathKey] || "";
+  if (!currentPath.split(":").includes(rootBin)) {
+    env[pathKey] = `${rootBin}:${currentPath}`;
+  }
   const child = spawn(command, args, { stdio: "inherit", env });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {

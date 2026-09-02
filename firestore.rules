@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Catch-all Deny Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Identity and Validation Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validation Blueprint: SavedIncident
+    function isValidSavedIncident(data, userId) {
+      return data.id is string && isValidId(data.id) &&
+        data.userId == userId &&
+        data.incidentTitle is string && data.incidentTitle.size() > 0 && data.incidentTitle.size() <= 200 &&
+        data.lat is number && data.lng is number &&
+        (!('acres' in data) || data.acres == null || data.acres is number) &&
+        (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 1000)) &&
+        data.savedAt is string && data.savedAt.size() <= 64;
+    }
+
+    // Entity Validation Blueprint: CommunityReport
+    function isValidCommunityReport(data, incidentId) {
+      return data.id is string && isValidId(data.id) &&
+        data.incidentId == incidentId &&
+        data.userId == request.auth.uid &&
+        (!('userDisplayName' in data) || data.userDisplayName == null || (data.userDisplayName is string && data.userDisplayName.size() <= 100)) &&
+        data.notes is string && data.notes.size() > 0 && data.notes.size() <= 1000 &&
+        (!('smokeObserved' in data) || data.smokeObserved == null || data.smokeObserved is bool) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // User Bookmarked Incidents
+    match /users/{userId}/savedIncidents/{incidentId} {
+      allow get: if isOwner(userId) && isValidId(incidentId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidId(incidentId) && isValidSavedIncident(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(incidentId) && isValidSavedIncident(incoming(), userId) &&
+        incoming().id == existing().id &&
+        incoming().userId == existing().userId;
+      allow delete: if isOwner(userId) && isValidId(incidentId);
+    }
+
+    // Community Reports under incidents
+    match /incidents/{incidentId}/reports/{reportId} {
+      allow get: if isSignedIn() && isValidId(incidentId) && isValidId(reportId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(incidentId) && isValidId(reportId) && isValidCommunityReport(incoming(), incidentId);
+      allow update: if false; // Community reports are immutable once filed
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

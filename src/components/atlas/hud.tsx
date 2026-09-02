@@ -1,17 +1,25 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  Bookmark,
   Clock3,
+  Compass,
   Flame,
   Globe2,
   Layers,
   Locate,
+  LogIn,
+  LogOut,
   Minus,
   Plus,
   Satellite,
   Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useFirebase } from "@/lib/firebase/context";
+import type { SavedIncident } from "@/lib/firebase/firestore-service";
 import { formatAcres, formatDay } from "@/lib/fires/format";
 import { cn } from "@/lib/utils";
 import type { TimeMode } from "@/lib/fires/types";
@@ -47,10 +55,14 @@ type Props = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onLocate: () => void;
+  onSelectSaved?: (saved: SavedIncident) => void;
 };
 
 export function Hud(props: Props) {
+  const { user, savedIncidents, removeSavedIncident, signIn, signOut } = useFirebase();
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [utc, setUtc] = useState(() => new Date().toISOString().slice(11, 16));
+
   useEffect(() => {
     const id = setInterval(() => setUtc(new Date().toISOString().slice(11, 16)), 1000);
     return () => clearInterval(id);
@@ -96,6 +108,67 @@ export function Hud(props: Props) {
           <Metric label="Named fires" value={String(props.incidentCount)} />
           <Metric label="Detections" value={String(props.hotspotCount)} />
           <Metric label="Reported acres" value={formatAcres(props.acres).replace(" acres", "")} />
+        </div>
+
+        <div className="panel pointer-events-auto flex items-center gap-2 px-3 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setWatchlistOpen(true)}
+            className="relative flex items-center gap-1.5 px-2.5 text-xs font-medium"
+            title="Open Firebase Watchlist"
+          >
+            <Bookmark
+              className={cn("size-3.5", savedIncidents.length > 0 && "fill-amber-400 text-amber-400")}
+            />
+            <span className="hidden sm:inline">Watchlist</span>
+            {savedIncidents.length > 0 && (
+              <span className="flex size-4 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                {savedIncidents.length}
+              </span>
+            )}
+          </Button>
+
+          <div className="h-4 w-px bg-border" />
+
+          {user ? (
+            <div className="flex items-center gap-2">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || "User"}
+                  className="size-6 rounded-full border border-border"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="flex size-6 items-center justify-center rounded-full bg-secondary text-[11px] font-medium">
+                  {user.displayName?.slice(0, 1) || "U"}
+                </div>
+              )}
+              <span className="hidden max-w-[100px] truncate text-xs text-foreground/90 lg:inline">
+                {user.displayName || user.email?.split("@")[0]}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                title="Sign out from Firebase"
+                className="size-7 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="size-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signIn}
+              className="h-8 gap-1.5 px-2.5 text-xs font-medium"
+            >
+              <LogIn className="size-3.5" />
+              <span className="hidden sm:inline">Sign in</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -180,6 +253,100 @@ export function Hud(props: Props) {
           </Button>
         </div>
       </div>
+
+      {watchlistOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="panel flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <div className="flex items-center gap-2">
+                <Bookmark className="size-4 fill-amber-400 text-amber-400" />
+                <h3 className="font-display text-base font-medium">Your Fire Watchlist</h3>
+                <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {savedIncidents.length}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setWatchlistOpen(false)}
+                aria-label="Close watchlist"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {!user ? (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Sign in with Google to sync your saved fires across devices in Firebase Firestore.
+                  </p>
+                  <Button variant="secondary" size="sm" onClick={signIn} className="mt-3 text-xs">
+                    Sign in with Google
+                  </Button>
+                </div>
+              ) : savedIncidents.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm font-medium text-foreground">No fires bookmarked yet</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Select any wildfire on the map and click the bookmark button in the briefing panel to track it here.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {savedIncidents.map((inc) => (
+                    <div
+                      key={inc.id}
+                      className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 p-3 transition-colors hover:bg-secondary/70"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          props.onSelectSaved?.(inc);
+                          setWatchlistOpen(false);
+                        }}
+                        className="flex-1 text-left"
+                      >
+                        <p className="text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+                          {inc.incidentTitle}
+                        </p>
+                        <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
+                          {inc.acres ? `${formatAcres(inc.acres)} · ` : ""}
+                          {inc.lat.toFixed(2)}°, {inc.lng.toFixed(2)}°
+                        </p>
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => {
+                            props.onSelectSaved?.(inc);
+                            setWatchlistOpen(false);
+                          }}
+                          title="Fly to fire"
+                          aria-label="Fly to fire"
+                        >
+                          <Compass className="size-3.5 text-muted-foreground hover:text-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeSavedIncident(inc.id)}
+                          title="Remove bookmark"
+                          aria-label="Remove bookmark"
+                        >
+                          <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

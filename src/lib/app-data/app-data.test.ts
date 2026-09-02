@@ -40,7 +40,7 @@ async function withStubbedGate(
   globalThis.fetch = (async () => {
     calls += 1;
     return new Response(JSON.stringify(body), { status });
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   try {
     await run(() => calls);
   } finally {

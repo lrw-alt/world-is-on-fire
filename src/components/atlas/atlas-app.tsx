@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Inspector } from "@/components/atlas/inspector";
 import { Hud } from "@/components/atlas/hud";
 import type { FireMapProps, MapView } from "@/components/map/fire-map";
+import type { SavedIncident } from "@/lib/firebase/firestore-service";
 import { isIncidentActiveOn, nearestIncident } from "@/lib/fires/geo";
 import { addDaysISO, todayISO } from "@/lib/fires/format";
 import {
@@ -201,6 +202,31 @@ export function AtlasApp() {
     });
   }, []);
 
+  const onSelectSaved = useCallback(
+    (saved: SavedIncident) => {
+      setFlyTo({ lat: saved.lat, lng: saved.lng, zoom: 8 });
+      const match = (incidentsQ.data?.incidents ?? []).find((i: FireIncident) => i.id === saved.id);
+      if (match) {
+        setSelected(match);
+      } else {
+        setSelected({
+          id: saved.id,
+          title: saved.incidentTitle,
+          lat: saved.lat,
+          lng: saved.lng,
+          started: saved.savedAt,
+          acres: saved.acres ?? null,
+          closed: null,
+          description: saved.notes ?? null,
+          sources: [],
+        });
+      }
+      setHotspot(null);
+      setPanelOpen(true);
+    },
+    [incidentsQ.data?.incidents],
+  );
+
   const satelliteDay = mode === "history" ? historyDay : addDaysISO(maxDay, -1);
 
   return (
@@ -249,6 +275,7 @@ export function AtlasApp() {
         onZoomIn={() => setFlyTo({ ...view, zoom: Math.min(13, view.zoom + 1) })}
         onZoomOut={() => setFlyTo({ ...view, zoom: Math.max(2, view.zoom - 1) })}
         onLocate={onLocate}
+        onSelectSaved={onSelectSaved}
       />
 
       <div

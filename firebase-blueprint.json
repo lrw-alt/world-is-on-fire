@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "SavedIncident": {
+      "title": "SavedIncident",
+      "description": "Wildfire incident bookmarked by the user for monitoring and quick navigation",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the bookmark"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Auth UID of the owner"
+        },
+        "incidentTitle": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Name or designation of the fire incident"
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        },
+        "acres": {
+          "type": "number",
+          "description": "Estimated acreage"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Personal observation or note"
+        },
+        "savedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the fire was saved"
+        }
+      },
+      "required": ["id", "userId", "incidentTitle", "lat", "lng", "savedAt"]
+    },
+    "CommunityReport": {
+      "title": "CommunityReport",
+      "description": "Eyewitness condition or situation report for a fire incident",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the report"
+        },
+        "incidentId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "ID of the incident"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Auth UID of the reporter"
+        },
+        "userDisplayName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Display name of the reporter"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Field observations, wind conditions, or smoke severity"
+        },
+        "smokeObserved": {
+          "type": "boolean",
+          "description": "Whether dense smoke was observed"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "incidentId", "userId", "notes", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/savedIncidents/{incidentId}": {
+      "schema": "SavedIncident",
+      "description": "Collection of incidents saved by a specific user"
+    },
+    "/incidents/{incidentId}/reports/{reportId}": {
+      "schema": "CommunityReport",
+      "description": "Community eyewitness reports filed for a specific incident"
+    }
+  }
+}
