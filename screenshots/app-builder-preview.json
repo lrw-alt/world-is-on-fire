@@ -1,0 +1,41 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Loading http://127.0.0.1:8080/",
+      "hasCanvas": false,
+      "bodyTextLen": 576,
+      "bodyTextHash": "c2881d2dae327ca05a0a6944912b6c102fea47c13b44f21c4e2d7c7b2f19b061",
+      "bodyTextPrefix": "Ember Atlas Live satellite01:46 UTC Named fires 0 Detections 0 R",
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Ember Atlas",
+      "hasCanvas": false,
+      "bodyTextLen": 576,
+      "bodyTextHash": "c2881d2dae327ca05a0a6944912b6c102fea47c13b44f21c4e2d7c7b2f19b061",
+      "bodyTextPrefix": "Ember Atlas Live satellite01:46 UTC Named fires 0 Detections 0 R",
+      "horizontalOverflow": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

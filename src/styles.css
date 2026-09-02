@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+
+  --color-background: #110e0c;
+  --color-foreground: #f4ebe3;
+  --color-card: #1c1714;
+  --color-card-foreground: #f4ebe3;
+  --color-popover: #211c18;
+  --color-popover-foreground: #f4ebe3;
+  --color-primary: #e85d04;
+  --color-primary-foreground: #1a0c04;
+  --color-secondary: #2a241f;
+  --color-secondary-foreground: #f4ebe3;
+  --color-muted: #2a241f;
+  --color-muted-foreground: #9c9086;
+  --color-accent: #322b26;
+  --color-accent-foreground: #f4ebe3;
+  --color-destructive: #d4523e;
+  --color-destructive-foreground: #f4ebe3;
+  --color-border: rgb(244 235 227 / 0.12);
+  --color-input: rgb(244 235 227 / 0.14);
+  --color-ring: #e85d04;
+  --color-success: #7dba6a;
+  --color-warning: #d08a4a;
+  --color-ember: #e85d04;
+  --color-ember-hot: #ff8a3d;
+  --color-ember-dim: #a33f08;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius: 12px;
+
+  --shadow-panel: 0 18px 50px rgb(0 0 0 / 0.38);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+
+  body {
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-primary) 40%, transparent);
+    color: var(--color-foreground);
+  }
+}
+
+@utility panel {
+  background: color-mix(in oklab, var(--color-card) 92%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-panel);
+}
+
+@utility hairline {
+  border: 1px solid var(--color-border);
+}
+
+@keyframes ember-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+@keyframes ember-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.atlas-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, color-mix(in oklab, var(--color-background) 55%, transparent));
+}
+
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-primary);
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-primary);
+  animation: ember-ring 1.8s var(--ease, ease-out) infinite;
+}
+
+.live-dot-core {
+  animation: ember-pulse 1.8s ease-in-out infinite;
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-muted-foreground) 0%,
+    var(--color-foreground) 50%,
+    var(--color-muted-foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot::after,
+  .live-dot-core,
+  .shimmer-text {
+    animation: none;
+  }
+  .shimmer-text {
+    color: var(--color-muted-foreground);
+    background: none;
+  }
+}
+
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+.leaflet-tooltip.ember-tip {
+  background: var(--color-popover);
+  color: var(--color-popover-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-panel);
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.leaflet-tooltip.ember-tip::before {
+  border-top-color: var(--color-popover);
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--color-background) 78%, transparent) !important;
+  color: var(--color-muted-foreground) !important;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-foreground) !important;
+}
